@@ -394,16 +394,14 @@ int int_interpret(struct IMAGE * image) {
 int int_readfile(FILE * fp, struct IMAGE * image) {
     char c = 1;
     int i = 0;
-    while(TRUE) {
-        while(c != '\n') {
-            c = fgetc(fp);
-            image->memory[GET(TIB) + i++] = c;
-            if(c == EOF) return -1;
-        }
-	image->memory[GET(NUM_TIB)] = i;
-        SET(TO_IN, 0);
-	return i - 1;
+    while(c != '\n') {
+        c = fgetc(fp);
+        image->memory[GET(TIB) + i++] = c;
+        if(c == EOF) return -1;
     }
+    image->memory[GET(NUM_TIB)] = i;
+    SET(TO_IN, 0);
+    return i - 1;
 }
 void int_eval(struct IMAGE * image, FILE * fi) {
     while(int_readfile(fi, image) != -1) 
