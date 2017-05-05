@@ -43,7 +43,6 @@ unsigned short create_handle(FILE** fh, FILE* handle) {
 #define PUSHRS(X) *(unsigned short *)(image->memory + GET(RPP)) = (X & 0xFFFF);SET(RPP,GET(RPP) - CELL_SIZE)
 #define POPDS(X) SET(SPP,GET(SPP) - CELL_SIZE);X = *(unsigned short *)(image->memory + GET(SPP))
 #define POPRS(X) SET(RPP,GET(RPP) + CELL_SIZE);X = *(unsigned short *)(image->memory + GET(RPP))
-#define NEXT  PC = PC + CELL_SIZE
 int vm_tostring(struct IMAGE * image, int start, char * text) {
     int ndx = 0;
     int pos = start;
@@ -57,19 +56,19 @@ int vm_tostring(struct IMAGE * image, int start, char * text) {
 }
 int vm_run(struct IMAGE * image, int start) {
     int PC = start;
-    long int regA, regB, regC = 0;
+    long int regA, regB = 0;
     PUSHRS(VM_SIZE - 1);
     while(PC < VM_SIZE - 1) {
         switch(GET(PC)) {
         case 0: // NOP
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 1: // HALT
             return PC;
         case 2: // LIT
-            NEXT;
+	    PC += CELL_SIZE;
             PUSHDS(GET(PC));
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 3: // EXIT
             regA = PC;
@@ -78,17 +77,17 @@ int vm_run(struct IMAGE * image, int start) {
         case 4: // @
             POPDS(regA);
             PUSHDS(GET(regA));
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 5: // !
             POPDS(regA);
             POPDS(regB);
             SET(regA, regB);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 6: // DROP
             POPDS(regA);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 7: // OVER
             POPDS(regA);
@@ -96,90 +95,90 @@ int vm_run(struct IMAGE * image, int start) {
             PUSHDS(regB);
             PUSHDS(regA);
             PUSHDS(regB);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 8: // SWAP
             POPDS(regA);
             POPDS(regB);
             PUSHDS(regA);
             PUSHDS(regB);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 9: // DUP
             POPDS(regA);
             PUSHDS(regA);
             PUSHDS(regA);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 10: // UM+
             POPDS(regA);
             POPDS(regB);
-            regC = regA + regB;
-            if(regC > 0xFFFF) {
-                PUSHDS(regC & 0xFFFF);
+            regA = regA + regB;
+            if(regA > 0xFFFF) {
+                PUSHDS(regA & 0xFFFF);
                 PUSHDS(1);
             }
             else {
-                PUSHDS(regC);
+                PUSHDS(regA);
                 PUSHDS(0);
             }
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 11: // NAND
             POPDS(regA);
             POPDS(regB);
             PUSHDS(~(regA & regB) & 0xFFFF);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 12: // 0<
             POPDS(regA);
             PUSHDS(regA > 0x8000 ? TRUE : FALSE);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 13: // >R
             POPDS(regA);
             PUSHRS(regA);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 14: // R>
             POPRS(regA);
             PUSHDS(regA);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 15: // next
-            NEXT;
+	    PC += CELL_SIZE;
             regA = GET(PC);
             POPRS(regB);
-            regB = regB - 1;
-            if(regB < 0) NEXT;
+            regB--;
+            if(regB < 0) PC += CELL_SIZE;
             else {
                 PUSHRS(regB);
                 PC = regA;
             }
             break;
         case 16: // BRANCH
-            NEXT;
+	    PC += CELL_SIZE;
             PC = GET(PC);
             break;
         case 17: // 0BRANCH
             POPDS(regA);
-            NEXT;
+	    PC += CELL_SIZE;
             regB = GET(PC);
             if(regA == FALSE) PC = regB;
-            else NEXT;
+            else PC += CELL_SIZE;
             break;
         case 18: // TX!
             POPDS(regA);
             POPDS(regB);
             fputc(regB, image->file_handles[regA]);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 19: // ?RX
             POPDS(regA);
             regA = fgetc(image->file_handles[regA]);
             PUSHDS(regA);
             PUSHDS(TRUE);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 20: // F_OPEN
             {
@@ -191,30 +190,29 @@ int vm_run(struct IMAGE * image, int start) {
                 vm_tostring(image, regB, options);
                 PUSHDS(create_handle(image->file_handles, fopen(filename,options)));
             }
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 21: // F_CLOSE
             POPDS(regA);
             fclose(image->file_handles[regA]);
             image->file_handles[regA] = NULL;
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 22: // C@
             POPDS(regA);
             regB  = image->memory[regA];
             PUSHDS(regB);
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         case 23: // C!
             POPDS(regA);
             POPDS(regB);
             image->memory[regA] = regB;
-            NEXT;
+	    PC += CELL_SIZE;
             break;
         default: // CALL
-            regA = PC;
             PUSHDS(GET(PC));
-            NEXT;
+	    PC += CELL_SIZE;
             PUSHRS(PC);
             POPDS(PC);
             break;
@@ -395,18 +393,15 @@ int int_interpret(struct IMAGE * image) {
 }
 int int_readfile(FILE * fp, struct IMAGE * image) {
     char c = 1;
-    int i;
-    while(TRUE) {
-        i = 0;
-        while(c != '\n') {
-            c = fgetc(fp);
-            image->memory[GET(TIB) + i++] = c;
-            if(c == EOF) return -1;
-        }
-	image->memory[GET(NUM_TIB)] = i;
-        SET(TO_IN, 0);
-	return i - 1;
+    int i = 0;
+    while(c != '\n') {
+        c = fgetc(fp);
+        image->memory[GET(TIB) + i++] = c;
+        if(c == EOF) return -1;
     }
+    image->memory[GET(NUM_TIB)] = i;
+    SET(TO_IN, 0);
+    return i - 1;
 }
 void int_eval(struct IMAGE * image, FILE * fi) {
     while(int_readfile(fi, image) != -1) 
