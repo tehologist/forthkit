@@ -398,6 +398,18 @@ decimal
 : words 
     context @ @ begin dup while dup count type link> 
     @ space repeat drop cr ;  
+    
+: rpick r> rpp @ swap >r + 2- @ ; 
+: do compile 2>r postpone begin ; immediate 
+: _loop r> r> 1+ dup r@ 1- > swap >r swap >r ; 
+: _+loop r> swap r> swap + dup r@ 1- > swap >r swap >r ; 
+: leave r> 2r> 2drop >r ; 
+: unloop r> r> drop r@ r> r> ; 
+: loop compile _loop postpone until compile leave ; immediate 
+: +loop compile _+loop postpone until compile leave ; immediate 
+: i r> r> tuck >r >r ; 
+: j 4 rpick ; 
+: k 4 rpick ;
 
 variable file 
 : open f_open file ! ; 
