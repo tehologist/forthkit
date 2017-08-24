@@ -273,8 +273,8 @@
     swap ! 
     cell- np ! ; 
 : : token $,n postpone ] ; 
-: ; compile exit postpone [ overt ; immediate
-: recursive last @ current @ ! ; immediate
+: ; compile exit postpone [ overt ; immediate 
+: recursive last @ current @ ! ; immediate 
 : recurse last @ code> @ , ; immediate 
 : dovar r> ; 
 : create token $,n compile dovar overt ; 
