@@ -220,7 +220,7 @@ int vm_run(struct IMAGE * image, int start) {
     }
     return PC;
 }
-void vm_init(struct IMAGE * image, FILE * fi, int size) {
+void vm_init(struct IMAGE * image, FILE * fi) {
     int x = 0;
     while(x < NUM_FILE_HANDLES) {
         image->file_handles[x++] = NULL;
@@ -324,7 +324,7 @@ int int_find(struct IMAGE * image, char * word, int size) {
     return 0;
 }
 int int_number(int * val, char * word, int size) {
-    int ndx, negative = 0;
+    int ndx = 0, negative = 0;
     if(size == 0) return 0;
     if(word[ndx] == '-') {
 	    negative = 1;
@@ -418,12 +418,12 @@ int main(int argc, char *argv[]) {
                     f = fopen(argv[x+1],"rb");
                     if(f != NULL) {
                         if(argv[x][1] == 'c'){
-                            vm_init(&image, NULL, VM_SIZE);
+                            vm_init(&image, NULL);
                             int_init(&image);
                             int_eval(&image, f);
                         }
                         else if(argv[x][1] == 'i'){
-                            vm_init(&image, f, VM_SIZE);
+                            vm_init(&image, f);
                         }
                         else return -1;
                         fclose(f);
